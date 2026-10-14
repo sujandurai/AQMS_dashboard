@@ -324,7 +324,8 @@ export default function AnalyticsPage() {
                    <Tooltip 
                      cursor={{ strokeDasharray: '3 3' }} 
                      {...tooltipStyle}
-                     content={({ active, payload }: { active?: boolean, payload?: any[] }) => {
+                     content={(props: any) => {
+                       const { active, payload } = props;
                        if (active && payload && payload.length) {
                          const d = payload[0].payload.raw;
                          return (
