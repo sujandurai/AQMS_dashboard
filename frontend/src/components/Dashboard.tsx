@@ -235,6 +235,29 @@ export default function Dashboard({
   const [nodesHistory, setNodesHistory] = useState<Record<string, any[]>>({});
   const [alerts, setAlerts]             = useState<SystemAlert[]>([]);
 
+  const randomRange = (min: number, max: number) => min + (Math.random() * (max - min));
+  const buildDemoTelemetry = (nodeId: string) => {
+    const isWorker = nodeId.startsWith('worker_');
+    const pm25 = Number(randomRange(0.3, 0.5).toFixed(2));
+    const co = Number(randomRange(0.2, 0.3).toFixed(2));
+    const temperature = Number(randomRange(26, 34).toFixed(1));
+    const humidity = Number(randomRange(45, 65).toFixed(1));
+    const co2 = Number(randomRange(isWorker ? 500 : 450, isWorker ? 700 : 650).toFixed(0));
+    const aqi = Number(randomRange(50, 55).toFixed(0));
+
+    return {
+      nodeId,
+      aqi,
+      pm2_5: pm25,
+      pm10: Number((pm25 * 1.7).toFixed(2)),
+      co,
+      co2,
+      temperature,
+      humidity,
+      timestamp: new Date().toISOString(),
+    };
+  };
+
   useEffect(() => {
     const socket = io('http://localhost:5000', { reconnectionAttempts: 3, timeout: 2000 });
 
@@ -299,9 +322,9 @@ export default function Dashboard({
         { id: '3', nodeId: 'beta-002', message: 'CO₂ within safe operational range.', severity: 'info', timestamp: new Date(Date.now() - 60000).toISOString() },
       ]);
 
-      let alpha = { aqi: 108, pm2_5: 38, pm10: 55, co: 1.8, co2: 820, temperature: 24, humidity: 48 };
-      let beta  = { aqi:  42, pm2_5: 11, pm10: 18, co: 0.4, co2: 415, temperature: 21, humidity: 55 };
-      const gamma = { aqi: 185, pm2_5: 88, pm10: 115, co: 4.9, co2: 1180, temperature: 29, humidity: 31 };
+      let alpha = buildDemoTelemetry('alpha-001');
+      let beta = buildDemoTelemetry('beta-002');
+      const gamma = buildDemoTelemetry('gamma-003');
 
       const ts = () => new Date().toISOString();
 
@@ -315,28 +338,17 @@ export default function Dashboard({
       Array.from({ length: 20 }).forEach(() => { pushHistory('alpha-001', alpha); pushHistory('beta-002', beta); });
 
       mockInterval = setInterval(() => {
-        alpha = {
-          ...alpha,
-          aqi:   Math.min(300, Math.max(0, alpha.aqi   + Math.floor(Math.random() * 12 - 5))),
-          pm2_5: Math.max(5,   alpha.pm2_5 + Math.floor(Math.random() * 6  - 2)),
-          pm10:  Math.max(10,  alpha.pm10  + Math.floor(Math.random() * 8  - 3)),
-          co:    Math.max(0,   +(alpha.co  + (Math.random() * 0.4 - 0.2)).toFixed(1)),
-          co2:   Math.max(400, alpha.co2   + Math.floor(Math.random() * 20 - 8)),
-        };
-        beta = {
-          ...beta,
-          aqi:   Math.max(20, beta.aqi + Math.floor(Math.random() * 6 - 2)),
-          pm2_5: Math.max(5,  beta.pm2_5 + Math.floor(Math.random() * 4 - 1)),
-        };
+        alpha = buildDemoTelemetry('alpha-001');
+        beta = buildDemoTelemetry('beta-002');
 
-        const alphaNode = { nodeId: 'alpha-001', timestamp: ts(), ...alpha };
-        const betaNode  = { nodeId: 'beta-002',  timestamp: ts(), ...beta  };
-        const gammaNode = { nodeId: 'gamma-003', timestamp: new Date(Date.now() - 360000).toISOString(), ...gamma };
+        const alphaNode = { ...alpha, nodeId: 'alpha-001', timestamp: ts() };
+        const betaNode = { ...beta, nodeId: 'beta-002', timestamp: ts() };
+        const gammaNode = { ...gamma, nodeId: 'gamma-003', timestamp: new Date(Date.now() - 360000).toISOString() };
 
         setNodesData({ 'alpha-001': alphaNode, 'beta-002': betaNode, 'gamma-003': gammaNode });
         pushHistory('alpha-001', alpha);
         pushHistory('beta-002', beta);
-      }, 3000);
+      }, 120000);
     };
 
     return () => { socket.disconnect(); if (mockInterval) clearInterval(mockInterval); };

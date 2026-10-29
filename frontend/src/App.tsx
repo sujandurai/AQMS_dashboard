@@ -149,11 +149,11 @@ export default function App() {
       // Seed mock data for AI context when backend is unreachable
       if (Object.keys(liveNodes).length === 0) {
         setLiveNodes({
-          "alpha-001": { nodeId: "alpha-001", aqi: 108, pm2_5: 38, pm10: 55, co: 1.8, co2: 820, temperature: 24, humidity: 48 },
-          "beta-002":  { nodeId: "beta-002",  aqi:  42, pm2_5: 11, pm10: 18, co: 0.4, co2: 415, temperature: 21, humidity: 55 },
-          "gamma-003": { nodeId: "gamma-003", aqi: 185, pm2_5: 88, pm10: 115, co: 4.9, co2: 1180, temperature: 29, humidity: 31 },
-          "worker_01_john": { nodeId: "worker_01_john", aqi: 45, pm2_5: 12, pm10: 20, co: 1.1, co2: 600, temperature: 36.5, humidity: 45 },
-          "worker_02_sarah": { nodeId: "worker_02_sarah", aqi: 135, pm2_5: 45, pm10: 60, co: 3.2, co2: 850, temperature: 36.8, humidity: 55 },
+          "alpha-001": { nodeId: "alpha-001", aqi: 52, pm2_5: 0.4, pm10: 0.7, co: 0.2, co2: 560, temperature: 28.4, humidity: 53 },
+          "beta-002":  { nodeId: "beta-002",  aqi: 50, pm2_5: 0.3, pm10: 0.6, co: 0.3, co2: 510, temperature: 27.8, humidity: 49 },
+          "gamma-003": { nodeId: "gamma-003", aqi: 55, pm2_5: 0.5, pm10: 0.8, co: 0.3, co2: 620, temperature: 31.2, humidity: 58 },
+          "worker_01_john": { nodeId: "worker_01_john", aqi: 54, pm2_5: 0.4, pm10: 0.7, co: 0.2, co2: 610, temperature: 29.5, humidity: 51 },
+          "worker_02_sarah": { nodeId: "worker_02_sarah", aqi: 51, pm2_5: 0.3, pm10: 0.6, co: 0.3, co2: 540, temperature: 28.1, humidity: 55 },
         });
         setLiveStatus({
           "alpha-001": { status: "online"  },

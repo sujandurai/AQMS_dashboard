@@ -5,7 +5,7 @@ const mqtt = require('mqtt');
 // Topic format: aqms/<nodeId>/data   (matches backend wildcard)
 // ─────────────────────────────────────────────────────────────────────────────
 const BROKER_URL = process.env.HIVEMQ_URL || 'mqtt://broker.hivemq.com:1883';
-const PUBLISH_INTERVAL_MS = 5000;
+const PUBLISH_INTERVAL_MS = 120000; // 2 minutes between telemetry refreshes
 
 const STATIC_NODES  = ['alpha-001', 'beta-002', 'gamma-003', 'delta-004'];
 const WORKER_NODES  = ['worker_01_john', 'worker_02_sarah', 'worker_03_mike'];
@@ -56,30 +56,39 @@ function publishStatus(nodeId, status) {
   console.log(`[${nodeId}] 📡 Status → ${status}`);
 }
 
-function publishData(nodeId) {
+function randomRange(min, max) {
+  return min + (Math.random() * (max - min));
+}
+
+function generateDemoTelemetry(nodeId) {
   const isWorker = nodeId.startsWith('worker_');
+  const pm25 = Number(randomRange(0.3, 0.5).toFixed(2));
+  const co = Number(randomRange(0.2, 0.3).toFixed(2));
+  const temperature = Number(randomRange(26, 34).toFixed(1));
+  const humidity = Number(randomRange(45, 65).toFixed(1));
+  const co2 = Number(randomRange(isWorker ? 500 : 450, isWorker ? 700 : 650).toFixed(0));
+  const aqi = Number(randomRange(50, 55).toFixed(0));
 
-  const pm2_5 = Math.floor(Math.random() * (isWorker ? 80 : 100)) + 5;
-  const pm10  = pm2_5 + Math.floor(Math.random() * 40);
-  const pm1_0 = Math.floor(pm2_5 * 0.6);
-  const aqi   = calculateAQI(pm2_5);
-
-  const payload = {
-    timestamp:   new Date().toISOString(),
+  return {
+    timestamp: new Date().toISOString(),
     aqi,
-    pm1_0,
-    pm2_5,
-    pm10,
-    co:          parseFloat((Math.random() * 5).toFixed(2)),         // 0–5 ppm
-    co2:         Math.floor(Math.random() * 600) + 400,              // 400–1000 ppm
-    temperature: parseFloat((Math.random() * 15 + 20).toFixed(1)),  // 20–35 °C
-    humidity:    Math.floor(Math.random() * 40) + 30,               // 30–70 %
+    pm1_0: Number((pm25 * 0.8).toFixed(2)),
+    pm2_5: pm25,
+    pm10: Number((pm25 * 1.7).toFixed(2)),
+    co,
+    co2,
+    temperature,
+    humidity,
   };
+}
+
+function publishData(nodeId) {
+  const payload = generateDemoTelemetry(nodeId);
 
   // New topic format: aqms/<nodeId>/data  ← matches ESP32 and backend wildcard
   const topic = `aqms/${nodeId}/data`;
   client.publish(topic, JSON.stringify(payload), { qos: 1 });
-  console.log(`[${nodeId}] 📊 AQI=${aqi}  PM2.5=${pm2_5}  CO2=${payload.co2}`);
+  console.log(`[${nodeId}] 📊 AQI=${payload.aqi}  PM2.5=${payload.pm2_5}  CO=${payload.co}  TEMP=${payload.temperature}C  HUM=${payload.humidity}%`);
 }
 
 // EPA-standard AQI from PM2.5
