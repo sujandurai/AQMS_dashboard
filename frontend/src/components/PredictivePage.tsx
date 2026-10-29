@@ -296,7 +296,7 @@ export default function PredictivePage() {
   useEffect(() => {
     const interval = setInterval(() => {
       setTensorCount(tf.memory().numTensors);
-    }, 2000);
+    }, 500);
     return () => clearInterval(interval);
   }, []);
 
@@ -406,7 +406,48 @@ export default function PredictivePage() {
     runTraining();
   }, [history, targetFeature, modelReady, activeNode, availableNodes]);
 
-  const filteredLen = history.filter(h => h.nodeId === activeNode).length;
+  const activeHistory = history.filter(h => h.nodeId === activeNode);
+  const filteredLen = activeHistory.length;
+
+  const currentNodeEntry = activeHistory[activeHistory.length - 1] ?? {
+    aqi: 0,
+    pm2_5: 0,
+    co2: 0,
+    temperature: 0,
+    humidity: 0,
+    nodeId: activeNode,
+  };
+
+  const safeNumber = (value: any, fallback = 0) => Number.isFinite(Number(value)) ? Number(value) : fallback;
+  const currentAqi = safeNumber(currentNodeEntry.aqi ?? (currentNodeEntry.pm2_5 ?? 0) * 2.5, 0);
+  const previousPredictions = predictions.filter(
+    (entry: any) => entry.nodeId === activeNode && entry.predicted !== null && entry.actual !== null
+  );
+  const lastPredictedValue = previousPredictions.length > 0
+    ? previousPredictions[previousPredictions.length - 1].predicted
+    : currentAqi;
+  const predictedAqi = safeNumber(lastPredictedValue, currentAqi);
+
+  const futureForecasts = predictions.filter(
+    (entry: any) => entry.nodeId === activeNode && entry.isFuture
+  );
+  const futureAqi = safeNumber(
+    futureForecasts.length > 0
+      ? futureForecasts[futureForecasts.length - 1].predicted
+      : Math.max(0, predictedAqi + (predictedAqi > 100 ? 12 : 6)),
+    currentAqi
+  );
+
+  const reasonFragments = [
+    safeNumber(currentNodeEntry.pm2_5, 0) > 30 ? 'PM2.5 is elevated' : null,
+    safeNumber(currentNodeEntry.co2, 0) > 800 ? 'CO₂ buildup suggests poor ventilation' : null,
+    safeNumber(currentNodeEntry.temperature, 0) > 31 ? 'Heat is increasing pollutant retention' : null,
+    safeNumber(currentNodeEntry.humidity, 0) > 60 ? 'Moist air is amplifying particle concentration' : null,
+  ].filter(Boolean) as string[];
+
+  const aqiReason = reasonFragments.length > 0
+    ? reasonFragments.join(' • ')
+    : 'Conditions are stable; no major AQI driver is active right now.';
 
   const featureMetrics = [
     { id: 'pm2_5', label: 'PM 2.5', icon: '◉' },
@@ -578,6 +619,39 @@ export default function PredictivePage() {
                 <span className="text-xs font-bold font-mono">{filteredLen}/{MAX_HISTORY}</span>
               </div>
             </div>
+          </AiMetricCard>
+        </div>
+
+        {/* ── AQI Forecast and Cause Summary ── */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-5 shrink-0">
+          <AiMetricCard icon={Target} label="Predicted AQI" isActive={isTraining} glowColor="primary">
+            <div className="flex items-baseline justify-between gap-3">
+              <p className="text-3xl font-black font-mono tracking-tight text-primary">
+                {Math.round(predictedAqi)}
+              </p>
+              <span className="text-[10px] uppercase tracking-wide text-muted-foreground">Next step</span>
+            </div>
+            <p className="mt-1 text-[10px] text-muted-foreground font-mono">
+              Model estimate for {activeNode || 'current node'}
+            </p>
+          </AiMetricCard>
+
+          <AiMetricCard icon={TrendingUp} label="Future AQI" glowColor="cyan">
+            <div className="flex items-baseline justify-between gap-3">
+              <p className="text-3xl font-black font-mono tracking-tight text-cyan-400">
+                {Math.round(futureAqi)}
+              </p>
+              <span className="text-[10px] uppercase tracking-wide text-muted-foreground">t+1</span>
+            </div>
+            <p className="mt-1 text-[10px] text-muted-foreground font-mono">
+              Forecasted condition in the next horizon
+            </p>
+          </AiMetricCard>
+
+          <AiMetricCard icon={Sparkles} label="Cause of Reason" glowColor="orange">
+            <p className="text-xs leading-5 text-foreground/90">
+              {aqiReason}
+            </p>
           </AiMetricCard>
         </div>
 

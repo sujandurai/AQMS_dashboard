@@ -114,7 +114,7 @@ export default function App() {
       });
     };
 
-    const interval = window.setInterval(tick, 1500);
+    const interval = window.setInterval(tick, 800);
     return () => window.clearInterval(interval);
   };
   // ── Live nodes data (lifted for AI context) ───────────────────────────────
@@ -210,7 +210,7 @@ export default function App() {
       if (Object.keys(liveNodes).length === 0) {
         startDemoTelemetry();
       }
-    }, 1500);
+    }, 600);
 
     return () => {
       window.clearTimeout(fallbackTimer);
