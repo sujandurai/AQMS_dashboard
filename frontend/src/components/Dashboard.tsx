@@ -352,7 +352,7 @@ export default function Dashboard({
         setNodesData({ 'alpha-001': alphaNode, 'beta-002': betaNode, 'gamma-003': gammaNode });
         pushHistory('alpha-001', alpha);
         pushHistory('beta-002', beta);
-      }, 120000);
+      }, 3000);
     };
 
     return () => { window.clearTimeout(fallbackTimer); socket.disconnect(); if (mockInterval) clearInterval(mockInterval); };

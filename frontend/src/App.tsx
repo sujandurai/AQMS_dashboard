@@ -114,7 +114,7 @@ export default function App() {
       });
     };
 
-    const interval = window.setInterval(tick, 4000);
+    const interval = window.setInterval(tick, 1500);
     return () => window.clearInterval(interval);
   };
   // ── Live nodes data (lifted for AI context) ───────────────────────────────
