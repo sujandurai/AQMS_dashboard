@@ -61,7 +61,62 @@ export default function App() {
   // ── Global alert state ────────────────────────────────────────────────────
   const [alerts,  setAlerts]  = useState<SystemAlert[]>([]);
   const [readIds, setReadIds] = useState<Set<string>>(new Set());
+  const buildDemoNode = (nodeId: string, index: number) => {
+    const baseAqi = 50 + ((index * 7) % 8);
+    const pm25 = Number((0.3 + ((index * 0.06) % 0.2)).toFixed(2));
+    const co = Number((0.2 + ((index * 0.05) % 0.1)).toFixed(2));
+    const temperature = Number((26 + ((index * 3) % 9) + (Math.random() * 2)).toFixed(1));
+    const humidity = Number((48 + ((index * 7) % 15) + (Math.random() * 6)).toFixed(1));
+    const co2 = 500 + (index * 30) + Math.floor(Math.random() * 80);
 
+    return {
+      nodeId,
+      aqi: baseAqi,
+      pm2_5: pm25,
+      pm10: Number((pm25 * 1.7).toFixed(2)),
+      co,
+      co2,
+      temperature,
+      humidity,
+      timestamp: new Date().toISOString(),
+    };
+  };
+
+  const startDemoTelemetry = () => {
+    const demoNodes = {
+      "alpha-001": buildDemoNode("alpha-001", 0),
+      "beta-002": buildDemoNode("beta-002", 1),
+      "gamma-003": buildDemoNode("gamma-003", 2),
+      "worker_01_john": buildDemoNode("worker_01_john", 3),
+      "worker_02_sarah": buildDemoNode("worker_02_sarah", 4),
+    };
+
+    setLiveNodes(demoNodes);
+    setLiveStatus({
+      "alpha-001": { status: "online" },
+      "beta-002": { status: "online" },
+      "gamma-003": { status: "warning" },
+      "worker_01_john": { status: "online" },
+      "worker_02_sarah": { status: "online" },
+    });
+    setAlerts([
+      { id: "demo-1", nodeId: "alpha-001", message: "PM2.5 stable near target range — normal monitoring state.", severity: "info", timestamp: new Date().toISOString() },
+      { id: "demo-2", nodeId: "gamma-003", message: "AQI drifted to the upper safe range; check ventilation.", severity: "warning", timestamp: new Date(Date.now() - 120000).toISOString() },
+    ]);
+
+    const tick = () => {
+      setLiveNodes(prev => {
+        const next = Object.fromEntries(Object.entries(prev).map(([id, node], idx) => {
+          const demo = buildDemoNode(id, idx + (Math.floor(Math.random() * 10)));
+          return [id, { ...demo, aqi: Math.min(55, Math.max(50, demo.aqi)) }];
+        }));
+        return next;
+      });
+    };
+
+    const interval = window.setInterval(tick, 4000);
+    return () => window.clearInterval(interval);
+  };
   // ── Live nodes data (lifted for AI context) ───────────────────────────────
   const [liveNodes,  setLiveNodes]  = useState<Record<string, any>>({});
   const [liveStatus, setLiveStatus] = useState<Record<string, any>>({});
@@ -146,32 +201,22 @@ export default function App() {
     });
 
     socket.on("connect_error", () => {
-      // Seed mock data for AI context when backend is unreachable
       if (Object.keys(liveNodes).length === 0) {
-        setLiveNodes({
-          "alpha-001": { nodeId: "alpha-001", aqi: 52, pm2_5: 0.4, pm10: 0.7, co: 0.2, co2: 560, temperature: 28.4, humidity: 53 },
-          "beta-002":  { nodeId: "beta-002",  aqi: 50, pm2_5: 0.3, pm10: 0.6, co: 0.3, co2: 510, temperature: 27.8, humidity: 49 },
-          "gamma-003": { nodeId: "gamma-003", aqi: 55, pm2_5: 0.5, pm10: 0.8, co: 0.3, co2: 620, temperature: 31.2, humidity: 58 },
-          "worker_01_john": { nodeId: "worker_01_john", aqi: 54, pm2_5: 0.4, pm10: 0.7, co: 0.2, co2: 610, temperature: 29.5, humidity: 51 },
-          "worker_02_sarah": { nodeId: "worker_02_sarah", aqi: 51, pm2_5: 0.3, pm10: 0.6, co: 0.3, co2: 540, temperature: 28.1, humidity: 55 },
-        });
-        setLiveStatus({
-          "alpha-001": { status: "online"  },
-          "beta-002":  { status: "offline" },
-          "gamma-003": { status: "offline" },
-          "worker_01_john": { status: "online" },
-          "worker_02_sarah": { status: "online" },
-        });
-        setAlerts(prev => prev.length === 0 ? [
-          { id: "1", nodeId: "alpha-001", message: "PM2.5 elevated above 35 µg/m³ — moderate air quality warning.", severity: "warning",  timestamp: new Date().toISOString() },
-          { id: "2", nodeId: "gamma-003", message: "Node offline — no heartbeat received for >5 minutes.",          severity: "critical", timestamp: new Date(Date.now() - 300000).toISOString() },
-          { id: "3", nodeId: "beta-002",  message: "CO₂ within safe operational range.",                            severity: "info",     timestamp: new Date(Date.now() - 60000).toISOString() },
-        ] : prev);
+        startDemoTelemetry();
       }
     });
 
-    return () => { socket.disconnect(); };
-  }, []);
+    const fallbackTimer = window.setTimeout(() => {
+      if (Object.keys(liveNodes).length === 0) {
+        startDemoTelemetry();
+      }
+    }, 1500);
+
+    return () => {
+      window.clearTimeout(fallbackTimer);
+      socket.disconnect();
+    };
+  }, [liveNodes]);
 
   useEffect(() => {
     document.documentElement.classList.toggle("dark", isDarkMode);

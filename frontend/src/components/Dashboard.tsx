@@ -309,6 +309,10 @@ export default function Dashboard({
       if (Object.keys(nodesData).length === 0) startMockEngine();
     });
 
+    const fallbackTimer = window.setTimeout(() => {
+      if (Object.keys(nodesData).length === 0) startMockEngine();
+    }, 1500);
+
     const startMockEngine = () => {
       setNodesStatus({
         'alpha-001': { nodeId: 'alpha-001', status: 'online' },
@@ -351,8 +355,8 @@ export default function Dashboard({
       }, 120000);
     };
 
-    return () => { socket.disconnect(); if (mockInterval) clearInterval(mockInterval); };
-  }, []);
+    return () => { window.clearTimeout(fallbackTimer); socket.disconnect(); if (mockInterval) clearInterval(mockInterval); };
+  }, [nodesData]);
 
   const outdoorNodesData = Object.fromEntries(Object.entries(nodesData).filter(([id]) => !id.startsWith('worker_')));
   const nodeKeys        = Object.keys(outdoorNodesData);
