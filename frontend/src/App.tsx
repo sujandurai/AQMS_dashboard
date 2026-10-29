@@ -106,7 +106,7 @@ export default function App() {
 
     const tick = () => {
       setLiveNodes(prev => {
-        const next = Object.fromEntries(Object.entries(prev).map(([id, node], idx) => {
+        const next = Object.fromEntries(Object.entries(prev).map(([id], idx) => {
           const demo = buildDemoNode(id, idx + (Math.floor(Math.random() * 10)));
           return [id, { ...demo, aqi: Math.min(55, Math.max(50, demo.aqi)) }];
         }));
